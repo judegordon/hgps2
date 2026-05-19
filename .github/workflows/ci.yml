@@ -6,6 +6,7 @@ on:
   release:
     types: [published]
   pull_request:
+    types : [opened, synchronize]
   workflow_dispatch:
 
 jobs:
@@ -18,23 +19,15 @@ jobs:
         include:
           - platform: linux
             os: ubuntu-24.04
-            compiler: gcc-default
-            is_main: true
-          - platform: linux
-            os: ubuntu-24.04
-            compiler: gcc-latest
-            is_main: false
+            compiler: gcc
+
           - platform: windows
             os: windows-2022
             compiler: msvc
-            is_main: true
 
     env:
       VCPKG_ROOT: vcpkg
       VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
-
-      # Update when there is a new version of gcc available
-      LATEST_GCC_VERSION: 14
 
     steps:
       - uses: actions/checkout@v6
@@ -52,15 +45,8 @@ jobs:
           sudo apt upgrade -y
           sudo apt install -y --no-install-recommends build-essential ninja-build lcov
 
-      - name: Install latest gcc (Linux)
-        if: matrix.compiler == 'gcc-latest'
-        run: |
-          sudo apt-get install -y g++-$LATEST_GCC_VERSION
 
-          # Use environment variable to tell CMake to compile with this version of gcc
-          echo CXX=g++-$LATEST_GCC_VERSION >> "$GITHUB_ENV"
-
-      - name: Export GitHub Actions cache environment variables
+      - name: Set up cache for VCPKG
         uses: actions/github-script@v9
         with:
           script: |
@@ -78,44 +64,42 @@ jobs:
           cmake --preset=${{ matrix.platform }}-debug -DWARNINGS_AS_ERRORS=ON -DGENERATE_COVERAGE=ON
 
       - uses: ZedThree/clang-tidy-review@v0.23.1
-        if: matrix.compiler == 'gcc-default' && github.event_name == 'pull_request' && !(github.actor == 'dependabot[bot]' || github.actor == 'pre-commit-ci[bot]')
+        if: matrix.platform == 'linux' && github.event_name == 'pull_request' && !(github.actor == 'dependabot[bot]' || github.actor == 'pre-commit-ci[bot]')
         id: review
         with:
           build_dir: out/build/linux-debug
           config_file: .clang-tidy
           lgtm_comment_body: ''
 
-      # Uploads an artefact containing clang_fixes.json
+      # Upload clang-tidy fixes + fail CI if there are any comments
       - uses: ZedThree/clang-tidy-review/upload@v0.23.1
-        if: matrix.compiler == 'gcc-default' && github.event_name == 'pull_request' && !(github.actor == 'dependabot[bot]' || github.actor == 'pre-commit-ci[bot]')
+        if: matrix.platform == 'linux' && github.event_name == 'pull_request' && !(github.actor == 'dependabot[bot]' || github.actor == 'pre-commit-ci[bot]')
         id: upload-review
 
-      # If there are any comments, fail the check
-      - if: steps.review.outputs.total_comments > 0 && matrix.compiler == 'gcc-default' && !(github.actor == 'dependabot[bot]' || github.actor == 'pre-commit-ci[bot]')
+      - if: github.event_name == 'pull_request' && steps.review.outputs.total_comments > 0 && matrix.platform == 'linux' && !(github.actor == 'dependabot[bot]' || github.actor == 'pre-commit-ci[bot]')
         run: exit 1
 
       - uses: ammaraskar/gcc-problem-matcher@master
       - name: Build HealthGPS (debug)
-        if: '!cancelled()' # Run this step, even if the previous one fails
-        run: cmake --build --preset=debug-build-${{ matrix.platform }} --target=install
+        if: '!cancelled()'
+        run: cmake --build --preset=${{ matrix.platform }}-debug-build --target=install
 
       - name: Execute HealthGPS (debug)
-        if: '!cancelled()' # Run this step, even if the previous one fails
+        if: '!cancelled()'
         run: out/install/${{ matrix.platform }}-debug/bin/HealthGPS.Console --help
 
       - name: Build HealthGPS (release)
-        if: '!cancelled()' # Run this step, even if the previous one fails
+        if: '!cancelled()'
         run: |
           # Build documentation so we can show Doxygen warnings
           cmake --preset=${{ matrix.platform }}-release -DWARNINGS_AS_ERRORS=ON -DBUILD_DOC=ON
-          cmake --build --preset=release-build-${{ matrix.platform }} --target=install
+          cmake --build --preset=${{ matrix.platform }}-release-build --target=install
 
       - name: Execute HealthGPS (release)
-        if: '!cancelled()' # Run this step, even if the previous one fails
+        if: '!cancelled()'
         run: out/install/${{ matrix.platform }}-release/bin/HealthGPS.Console --help
 
       - name: Upload artifacts
-        if: matrix.is_main
         uses: actions/upload-artifact@v7
         with:
           name: health-gps-${{ matrix.platform }}
@@ -126,25 +110,25 @@ jobs:
         run: ctest --preset=core-test-${{ matrix.platform }}
 
       - name: Generate coverage report
-        if: matrix.compiler == 'gcc-default'
+        if: matrix.platform == 'linux'
         working-directory: ${{github.workspace}}/out/build/${{ matrix.platform }}-debug
         run: geninfo . --include 'src/HealthGPS*' --exclude 'src/HealthGPS.Tests' --output-file main_coverage.info
 
       - name: Upload coverage reports to Codecov
-        if: matrix.compiler == 'gcc-default'
+        if: matrix.platform == 'linux'
         uses: codecov/codecov-action@v6
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Zip output folder
-        if: startsWith(github.ref, 'refs/tags/') && matrix.is_main
+        if: startsWith(github.ref, 'refs/tags/')
         working-directory: ${{github.workspace}}/out/install/${{ matrix.platform }}-release/bin/
         run: |
           mkdir ${{github.workspace}}/artifact
           7z a -tzip ${{github.workspace}}/artifact/health_gps_${{ matrix.platform }}.zip *.dll *.Console* schemas
 
       - name: Upload release artifacts
-        if: startsWith(github.ref, 'refs/tags/') && matrix.is_main
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
           files: artifact/health_gps_${{ matrix.platform }}.zip
