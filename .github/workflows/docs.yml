@@ -39,7 +39,6 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt update
-          sudo apt upgrade -y
           sudo apt install --no-install-recommends build-essential ninja-build doxygen graphviz
       - name: Install VCPKG
         run: |

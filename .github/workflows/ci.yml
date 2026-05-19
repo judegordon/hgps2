@@ -42,7 +42,6 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt update
-          sudo apt upgrade -y
           sudo apt install -y --no-install-recommends build-essential ninja-build lcov
 
 
