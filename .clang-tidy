@@ -1,0 +1,25 @@
+Checks: >
+  -*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  misc-*,
+
+  
+  
+  -clang-analyzer-osx.*,
+  -clang-analyzer-fuchsia.*,
+  -clang-analyzer-optin.osx.*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -misc-const-correctness,
+  -misc-include-cleaner,
+  -misc-no-recursion,
+  -misc-non-private-member-variables-in-classes,
+
+CheckOptions:
+  - key: readability-function-cognitive-complexity.IgnoreMacros
+    value: true
+FormatStyle: LLVM
+WarningsAsErrors: '*'

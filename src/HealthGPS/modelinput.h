@@ -1,0 +1,142 @@
+#pragma once
+
+#include <HealthGPS.Core/datatable.h>
+#include <HealthGPS.Core/string_util.h>
+#include <map>
+
+#include "HealthGPS.Input/poco.h"
+#include "mapping.h"
+#include "settings.h"
+
+#include <optional>
+
+namespace hgps {
+
+/// @brief Defines the Simulation run information data type
+struct RunInfo {
+    /// @brief Experiment start time
+    unsigned int start_time{};
+
+    /// @brief Experiment stop time
+    unsigned int stop_time{};
+
+    /// @brief Scenarios data synchronisation timeout in milliseconds
+    unsigned int sync_timeout_ms{};
+
+    /// @brief Custom seed to initialise the pseudo-number generator engine
+    std::optional<unsigned int> seed{};
+
+    /// @brief The application logging verbosity
+    core::VerboseMode verbosity{};
+
+    /// @brief Maximum number of comorbidities to include in results
+    unsigned int comorbidities{};
+
+    /// @brief Calendar year when intervention policies start (e.g. 2024)
+    unsigned int policy_start_year{0};
+};
+
+/// @brief Defines the socio-economic status (SES) model data type
+struct SESDefinition {
+    /// @brief Socio-economic status (SES) function identification
+    std::string fuction_name;
+
+    /// @brief The SES model function parameters
+    std::vector<double> parameters;
+};
+
+/// @brief Defines the Simulation model inputs data type
+class ModelInput {
+  public:
+    ModelInput() = delete;
+
+    /// @brief Initialise a new instance of the ModelInput class.
+    /// @param data The risk factors fitted dataset
+    /// @param settings Experiment settings definition
+    /// @param run_info Simulation run information
+    /// @param ses_info Socio-economic status (SES) model information
+    /// @param risk_mapping Hierarchical risk factors model mappings
+    /// @param diseases Selected diseases to include in experiment
+    /// @param project_requirements Per-project requirements (demographics, income, PA, etc.)
+    /// @param pif_info Population Impact Fraction configuration
+    /// @param individual_id_tracking_config MAHIMA: optional per-person CSV tracking (output)
+    ModelInput(core::DataTable &data, Settings settings, const RunInfo &run_info,
+               SESDefinition ses_info, HierarchicalMapping risk_mapping,
+               std::vector<core::DiseaseInfo> diseases,
+               hgps::input::ProjectRequirements project_requirements,
+               hgps::input::PIFInfo pif_info = hgps::input::PIFInfo{},
+               std::optional<hgps::input::IndividualIdTrackingConfig>
+                   individual_id_tracking_config = std::nullopt);
+
+    /// @brief Gets the simulation experiment settings definition
+    /// @return Experiment settings definition
+    const Settings &settings() const noexcept;
+
+    /// @brief Gets the risk factors model dataset
+    /// @return Risk factors dataset
+    const core::DataTable &data() const noexcept;
+
+    /// @brief Gets the experiment start time
+    /// @return Experiment start time
+    unsigned int start_time() const noexcept;
+
+    /// @brief Gets the experiment stop time
+    /// @return Experiment stop time
+    unsigned int stop_time() const noexcept;
+
+    /// @brief Gets the scenarios data synchronisation timeout (milliseconds)
+    /// @return Scenarios synchronisation timeout
+    unsigned int sync_timeout_ms() const noexcept;
+
+    /// @brief Gets the user custom seed to initialise the pseudo-number generator
+    /// @return User custom seed value, if provide; otherwise empty.
+    const std::optional<unsigned int> &seed() const noexcept;
+
+    /// @brief Gets the simulation run information
+    /// @return simulation run information
+    const RunInfo &run() const noexcept;
+
+    /// @brief Gets the Socio-economic status (SES) model information
+    /// @return SES model information
+    const SESDefinition &ses_definition() const noexcept;
+
+    /// @brief Gets the Hierarchical risk factors model mappings definition
+    /// @return Risk factors model mappings
+    const HierarchicalMapping &risk_mapping() const noexcept;
+
+    /// @brief Gets the collection of diseases to include in experiment
+    /// @return Diseases to include in experiment
+    const std::vector<core::DiseaseInfo> &diseases() const noexcept;
+
+    /// @brief Gets whether income-based analysis is enabled
+    /// @return true if income analysis is enabled, false otherwise
+    bool enable_income_analysis() const noexcept;
+
+    /// @brief Gets the Population Impact Fraction configuration
+    /// @return PIF configuration
+    const hgps::input::PIFInfo &population_impact_fraction() const noexcept;
+
+    /// @brief Gets the per-project requirements (demographics, income, PA, risk factors, trend,
+    /// two-stage)
+    /// @return Project requirements
+    const hgps::input::ProjectRequirements &project_requirements() const noexcept;
+
+    /// @brief Gets optional individual ID tracking config (MAHIMA: per-person CSV output).
+    /// @return Optional tracking config, or nullopt if not set
+    const std::optional<hgps::input::IndividualIdTrackingConfig> &
+    individual_id_tracking_config() const noexcept;
+
+  private:
+    std::reference_wrapper<core::DataTable> input_data_;
+    Settings settings_;
+    RunInfo run_info_;
+    SESDefinition ses_definition_;
+    HierarchicalMapping risk_mapping_;
+    std::vector<core::DiseaseInfo> diseases_;
+    hgps::input::ProjectRequirements project_requirements_{};
+    bool enable_income_analysis_{
+        true}; // This is to set if results be categorised by income or not. Set to TRUE for now.
+    hgps::input::PIFInfo pif_info_;
+    std::optional<hgps::input::IndividualIdTrackingConfig> individual_id_tracking_config_{};
+};
+} // namespace hgps

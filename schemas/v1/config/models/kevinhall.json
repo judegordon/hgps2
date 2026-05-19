@@ -1,0 +1,106 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/imperialCHEPI/healthgps/main/schemas/v1/config/models/kevinhall.json",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "ModelName": {
+            "const": "KevinHall"
+        },
+        "Nutrients": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "Name": {
+                        "type": "string"
+                    },
+                    "Range": {
+                        "type": "array",
+                        "items": {
+                            "type": "number",
+                            "minimum": 0.0
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                    },
+                    "Energy": {
+                        "type": "number",
+                        "minimum": 0.0
+                    }
+                },
+                "additionalProperties": false
+            },
+            "minItems": 1
+        },
+        "Foods": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "Name": {
+                        "type": "string"
+                    },
+                    "Nutrients": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "number"
+                        }
+                    },
+                    "Price": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "WeightQuantiles": {
+            "propertyNames": {
+                "enum": [
+                    "Male",
+                    "Female"
+                ]
+            },
+            "additionalProperties": {
+                "$ref": "../csv_file.json"
+            }
+        },
+        "EnergyPhysicalActivityQuantiles": {
+            "$ref": "../csv_file.json"
+        },
+        "HeightStdDev": {
+            "type": "object",
+            "properties": {
+                "Male": {
+                    "type": "number"
+                },
+                "Female": {
+                    "type": "number"
+                }
+            },
+            "additionalProperties": false
+        },
+        "HeightSlope": {
+            "type": "object",
+            "properties": {
+                "Male": {
+                    "type": "number"
+                },
+                "Female": {
+                    "type": "number"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": false
+}

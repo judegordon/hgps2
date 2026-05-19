@@ -1,0 +1,25 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/imperialCHEPI/healthgps/main/schemas/v1/data_index.json",
+    "title": "Index file for input data",
+    "description": "Metadata and paths for Health-GPS input files",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "country": {
+            "$ref": "data_index/country.json"
+        },
+        "demographic": {
+            "$ref": "data_index/demographic.json"
+        },
+        "diseases": {
+            "$ref": "data_index/diseases.json"
+        },
+        "analysis": {
+            "$ref": "data_index/analysis.json"
+        }
+    },
+    "additionalProperties": false
+}
